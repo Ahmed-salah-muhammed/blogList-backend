@@ -1,6 +1,6 @@
-```
 ![Pagination Diagram](./Barcelona.png)
 
+```
 ------   this is the structure of the project   ------
 
 bloglist/
