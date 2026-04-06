@@ -1,16 +1,31 @@
 import Blog from "../models/blog.js";
 import User from "../models/users.js";
+import {
+  buildQueryOptions,
+  buildPaginationMeta,
+} from "../utils/queryHelper.js";
 
-export const getAllBlogs = async (req, res) => {
-  const filter = req.query.search
-    ? { title: { $regex: req.query.search, $options: "i" } }
-    : {};
+export const getAllBlogs = async (req, res, next) => {
+  try {
+    const { filter, sort, skip, limit, page } = buildQueryOptions(req.query);
 
-  const blogs = await Blog.find(filter).populate("user", {
-    username: 1,
-    name: 1,
-  });
-  res.json(blogs);
+    const [blogs, total] = await Promise.all([
+      Blog.find(filter)
+        .populate("user", { username: 1, name: 1 })
+        .sort(sort)
+        .skip(skip)
+        .limit(limit),
+      Blog.countDocuments(filter),
+    ]);
+
+    res.json({
+      data: blogs,
+      pagination: buildPaginationMeta(total, page, limit),
+    });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
 };
 
 export const getBlog = async (req, res, next) => {

@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const blogSchema = new mongoose.Schema({
   title: {
     type: String,
-    index: true,
+    index: true, 
   },
   author: String,
   url: String,
