@@ -7,13 +7,13 @@ bloglist/
 ├── models/
 │   └── blog.js          ← Mongoose model
 ├── controllers/
-│   └── blogController.js ← كل الـ CRUD logic
+│   └── blogController.js  CRUD logic
 ├── routes/
-│   └── blogRoutes.js    ← الـ endpoints
+│   └── blogRoutes.js    ← endpoints
 ├── utils/
 │   └── middleware.js    ← logger, unknownEndpoint, errorHandler
 ├── app.js               ← Express app + MongoDB connection
-├── server.js            ← entry point + dotenv
+├── server.js            ← entry point
 ├── package.json
 ├── .env
 └── .gitignore
