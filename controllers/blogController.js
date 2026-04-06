@@ -2,7 +2,11 @@ import Blog from "../models/blog.js";
 import User from "../models/users.js";
 
 export const getAllBlogs = async (req, res) => {
-  const blogs = await Blog.find({}).populate("user", {
+  const filter = req.query.search
+    ? { title: { $regex: req.query.search, $options: "i" } }
+    : {};
+
+  const blogs = await Blog.find(filter).populate("user", {
     username: 1,
     name: 1,
   });
@@ -60,6 +64,24 @@ export const updateBlog = async (req, res, next) => {
       runValidators: true,
       context: "query",
     });
+
+    if (!updated) {
+      return res.status(404).json({ error: "blog not found" });
+    }
+
+    res.json(updated);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const likeBlog = async (req, res, next) => {
+  try {
+    const updated = await Blog.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { likes: 1 } },
+      { new: true },
+    ).populate("user", { username: 1, name: 1 });
 
     if (!updated) {
       return res.status(404).json({ error: "blog not found" });

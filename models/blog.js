@@ -1,7 +1,10 @@
 import mongoose from "mongoose";
 
 const blogSchema = new mongoose.Schema({
-  title: String,
+  title: {
+    type: String,
+    index: true,
+  },
   author: String,
   url: String,
   likes: {
