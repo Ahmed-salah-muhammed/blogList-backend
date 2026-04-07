@@ -1,7 +1,11 @@
-import jwt from "jsonwebtoken";
 import Blog from "../models/blog.js";
 import User from "../models/users.js";
 import { buildQueryOptions, buildPaginationMeta } from "../utils/queryHelper.js";
+
+const buildSafeBlogUpdate = (body) => {
+  const { user, _id, id, ...safeBody } = body;
+  return safeBody;
+};
 
 export const getAllBlogs = async (req, res, next) => {
   try {
@@ -21,7 +25,6 @@ export const getAllBlogs = async (req, res, next) => {
       pagination: buildPaginationMeta(total, page, limit),
     });
   } catch (err) {
-    if (err.status) return res.status(err.status).json({ error: err.message });
     next(err);
   }
 };
@@ -45,17 +48,7 @@ export const getBlog = async (req, res, next) => {
 
 export const createBlog = async (req, res, next) => {
   try {
-    // 4.24: verify token and identify the creator
-    if (!req.token) {
-      return res.status(401).json({ error: "token missing" });
-    }
-
-    const decodedToken = jwt.verify(req.token, process.env.SECRET);
-    const user = await User.findById(decodedToken.id);
-
-    if (!user) {
-      return res.status(401).json({ error: "token invalid" });
-    }
+    const user = req.user;
 
     const blog = new Blog({
       title: req.body.title,
@@ -78,15 +71,26 @@ export const createBlog = async (req, res, next) => {
 
 export const updateBlog = async (req, res, next) => {
   try {
-    const updated = await Blog.findByIdAndUpdate(req.params.id, req.body, {
+    const user = req.user;
+    const blog = await Blog.findById(req.params.id);
+
+    if (!blog) {
+      return res.status(404).json({ error: "blog not found" });
+    }
+
+    if (!blog.user || blog.user.toString() !== user.id) {
+      return res
+        .status(403)
+        .json({ error: "forbidden: only owner can update blog" });
+    }
+
+    const safeUpdate = buildSafeBlogUpdate(req.body);
+
+    const updated = await Blog.findByIdAndUpdate(req.params.id, safeUpdate, {
       new: true,
       runValidators: true,
       context: "query",
     });
-
-    if (!updated) {
-      return res.status(404).json({ error: "blog not found" });
-    }
 
     res.json(updated);
   } catch (err) {
@@ -115,7 +119,21 @@ export const likeBlog = async (req, res, next) => {
 
 export const deleteBlog = async (req, res, next) => {
   try {
+    const user = req.user;
+    const blog = await Blog.findById(req.params.id);
+
+    if (!blog) {
+      return res.status(404).json({ error: "blog not found" });
+    }
+
+    if (!blog.user || blog.user.toString() !== user.id) {
+      return res
+        .status(403)
+        .json({ error: "forbidden: only owner can delete blog" });
+    }
+
     await Blog.findByIdAndDelete(req.params.id);
+    await User.findByIdAndUpdate(user.id, { $pull: { blogs: blog._id } });
     res.status(204).end();
   } catch (err) {
     next(err);

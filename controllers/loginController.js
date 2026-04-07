@@ -26,7 +26,7 @@ export const login = async (req, res, next) => {
     };
 
     const token = jwt.sign(tokenPayload, process.env.SECRET, {
-      expiresIn: "60*60",
+      expiresIn: "1h",
     });
 
     res.json({
