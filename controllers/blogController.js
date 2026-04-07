@@ -2,6 +2,12 @@ import jwt from "jsonwebtoken";
 import Blog from "../models/blog.js";
 import User from "../models/users.js";
 import { buildQueryOptions, buildPaginationMeta } from "../utils/queryHelper.js";
+import { createHttpError } from "../utils/httpError.js";
+
+const buildSafeBlogUpdate = (body) => {
+  const { user, _id, id, ...safeBody } = body;
+  return safeBody;
+};
 
 export const getAllBlogs = async (req, res, next) => {
   try {
@@ -21,7 +27,6 @@ export const getAllBlogs = async (req, res, next) => {
       pagination: buildPaginationMeta(total, page, limit),
     });
   } catch (err) {
-    if (err.status) return res.status(err.status).json({ error: err.message });
     next(err);
   }
 };
@@ -34,7 +39,7 @@ export const getBlog = async (req, res, next) => {
     });
 
     if (!blog) {
-      return res.status(404).json({ error: "blog not found" });
+      throw createHttpError(404, "blog not found");
     }
 
     res.json(blog);
@@ -45,16 +50,15 @@ export const getBlog = async (req, res, next) => {
 
 export const createBlog = async (req, res, next) => {
   try {
-    // 4.24: verify token and identify the creator
     if (!req.token) {
-      return res.status(401).json({ error: "token missing" });
+      throw createHttpError(401, "token missing");
     }
 
     const decodedToken = jwt.verify(req.token, process.env.SECRET);
     const user = await User.findById(decodedToken.id);
 
     if (!user) {
-      return res.status(401).json({ error: "token invalid" });
+      throw createHttpError(401, "token invalid");
     }
 
     const blog = new Blog({
@@ -78,15 +82,28 @@ export const createBlog = async (req, res, next) => {
 
 export const updateBlog = async (req, res, next) => {
   try {
-    const updated = await Blog.findByIdAndUpdate(req.params.id, req.body, {
+    if (!req.token) {
+      throw createHttpError(401, "token missing");
+    }
+
+    const decodedToken = jwt.verify(req.token, process.env.SECRET);
+    const blog = await Blog.findById(req.params.id);
+
+    if (!blog) {
+      throw createHttpError(404, "blog not found");
+    }
+
+    if (!blog.user || blog.user.toString() !== decodedToken.id) {
+      throw createHttpError(403, "forbidden: only owner can update blog");
+    }
+
+    const safeUpdate = buildSafeBlogUpdate(req.body);
+
+    const updated = await Blog.findByIdAndUpdate(req.params.id, safeUpdate, {
       new: true,
       runValidators: true,
       context: "query",
     });
-
-    if (!updated) {
-      return res.status(404).json({ error: "blog not found" });
-    }
 
     res.json(updated);
   } catch (err) {
@@ -104,7 +121,7 @@ export const likeBlog = async (req, res, next) => {
     ).populate("user", { username: 1, name: 1 });
 
     if (!updated) {
-      return res.status(404).json({ error: "blog not found" });
+      throw createHttpError(404, "blog not found");
     }
 
     res.json(updated);
@@ -115,7 +132,23 @@ export const likeBlog = async (req, res, next) => {
 
 export const deleteBlog = async (req, res, next) => {
   try {
+    if (!req.token) {
+      throw createHttpError(401, "token missing");
+    }
+
+    const decodedToken = jwt.verify(req.token, process.env.SECRET);
+    const blog = await Blog.findById(req.params.id);
+
+    if (!blog) {
+      throw createHttpError(404, "blog not found");
+    }
+
+    if (!blog.user || blog.user.toString() !== decodedToken.id) {
+      throw createHttpError(403, "forbidden: only owner can delete blog");
+    }
+
     await Blog.findByIdAndDelete(req.params.id);
+    await User.findByIdAndUpdate(decodedToken.id, { $pull: { blogs: blog._id } });
     res.status(204).end();
   } catch (err) {
     next(err);
