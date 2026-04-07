@@ -2,11 +2,11 @@ import jwt from "jsonwebtoken";
 import Blog from "../models/blog.js";
 import User from "../models/users.js";
 import { buildQueryOptions, buildPaginationMeta } from "../utils/queryHelper.js";
+import { createHttpError } from "../utils/httpError.js";
 
-const createHttpError = (status, message) => {
-  const err = new Error(message);
-  err.status = status;
-  return err;
+const buildSafeBlogUpdate = (body) => {
+  const { user, _id, id, ...safeBody } = body;
+  return safeBody;
 };
 
 export const getAllBlogs = async (req, res, next) => {
@@ -39,7 +39,7 @@ export const getBlog = async (req, res, next) => {
     });
 
     if (!blog) {
-      return res.status(404).json({ error: "blog not found" });
+      throw createHttpError(404, "blog not found");
     }
 
     res.json(blog);
@@ -97,7 +97,9 @@ export const updateBlog = async (req, res, next) => {
       throw createHttpError(403, "forbidden: only owner can update blog");
     }
 
-    const updated = await Blog.findByIdAndUpdate(req.params.id, req.body, {
+    const safeUpdate = buildSafeBlogUpdate(req.body);
+
+    const updated = await Blog.findByIdAndUpdate(req.params.id, safeUpdate, {
       new: true,
       runValidators: true,
       context: "query",
@@ -119,7 +121,7 @@ export const likeBlog = async (req, res, next) => {
     ).populate("user", { username: 1, name: 1 });
 
     if (!updated) {
-      return res.status(404).json({ error: "blog not found" });
+      throw createHttpError(404, "blog not found");
     }
 
     res.json(updated);

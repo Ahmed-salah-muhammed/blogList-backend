@@ -1,12 +1,7 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import User from "../models/users.js";
-
-const createHttpError = (status, message) => {
-  const err = new Error(message);
-  err.status = status;
-  return err;
-};
+import { createHttpError } from "../utils/httpError.js";
 
 export const login = async (req, res, next) => {
   try {
