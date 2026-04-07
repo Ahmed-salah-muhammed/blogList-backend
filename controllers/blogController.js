@@ -1,9 +1,7 @@
+import jwt from "jsonwebtoken";
 import Blog from "../models/blog.js";
 import User from "../models/users.js";
-import {
-  buildQueryOptions,
-  buildPaginationMeta,
-} from "../utils/queryHelper.js";
+import { buildQueryOptions, buildPaginationMeta } from "../utils/queryHelper.js";
 
 export const getAllBlogs = async (req, res, next) => {
   try {
@@ -47,10 +45,16 @@ export const getBlog = async (req, res, next) => {
 
 export const createBlog = async (req, res, next) => {
   try {
-    const user = await User.findOne({});
+    // 4.24: verify token and identify the creator
+    if (!req.token) {
+      return res.status(401).json({ error: "token missing" });
+    }
+
+    const decodedToken = jwt.verify(req.token, process.env.SECRET);
+    const user = await User.findById(decodedToken.id);
 
     if (!user) {
-      return res.status(400).json({ error: "no users found in the database" });
+      return res.status(401).json({ error: "token invalid" });
     }
 
     const blog = new Blog({
@@ -90,12 +94,13 @@ export const updateBlog = async (req, res, next) => {
   }
 };
 
+// 4.18: increment likes by 1
 export const likeBlog = async (req, res, next) => {
   try {
     const updated = await Blog.findByIdAndUpdate(
       req.params.id,
       { $inc: { likes: 1 } },
-      { new: true },
+      { new: true }
     ).populate("user", { username: 1, name: 1 });
 
     if (!updated) {

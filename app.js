@@ -2,7 +2,13 @@ import express from "express";
 import mongoose from "mongoose";
 import blogRoutes from "./routes/blogRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
-import { logger, unknownEndpoint, errorHandler } from "./utils/middleware.js";
+import loginRoutes from "./routes/loginRoutes.js";
+import {
+  logger,
+  tokenExtractor,
+  unknownEndpoint,
+  errorHandler,
+} from "./utils/middleware.js";
 
 const app = express();
 
@@ -15,7 +21,9 @@ mongoose
 
 app.use(express.json());
 app.use(logger);
+app.use(tokenExtractor);
 
+app.use("/api", loginRoutes);
 app.use("/api", blogRoutes);
 app.use("/api", userRoutes);
 
