@@ -1,74 +1,80 @@
-# Bloglist API
+# Bloglist
 
 ## Project Structure
 
 ```
-bloglist/
-├── models/
-│   ├── blog.js               ← Blog schema & model
-│   └── users.js              ← User schema & model
+bloglist/                        ← backend (Node/Express)
 ├── controllers/
-│   ├── blogController.js     ← Blog CRUD + like logic
-│   └── userController.js     ← User creation & listing
+│   ├── blogController.js
+│   ├── loginController.js
+│   └── userController.js
+├── models/
+│   ├── blog.js
+│   └── users.js
 ├── routes/
-│   ├── blogRoutes.js         ← /api/blogs endpoints
-│   └── userRoutes.js         ← /api/users endpoints
+│   ├── blogRoutes.js
+│   ├── loginRoutes.js
+│   └── userRoutes.js
 ├── utils/
-│   ├── middleware.js         ← logger, errorHandler, unknownEndpoint
-│   └── queryHelper.js        ← search, sort, pagination helpers
-├── app.js                    ← Express app + MongoDB connection
-├── server.js                 ← Entry point + dotenv
+│   ├── httpError.js
+│   ├── middleware.js
+│   └── queryHelper.js
+├── app.js
+├── server.js
 ├── package.json
-├── .env
-└── .gitignore
+└── .env                         ← backend env vars
+
+frontend/                        ← frontend (React/Vite)
+├── src/
+│   ├── components/
+│   ├── pages/
+│   ├── services/
+│   ├── App.jsx
+│   └── main.jsx
+├── vite.config.js
+├── package.json
+└── .env                         ← frontend env vars (optional)
 ```
 
-## Endpoints
+## Backend Endpoints
 
-### Blogs
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/blogs` | Get all blogs |
-| GET | `/api/blogs?search=react` | Search blogs by title |
-| GET | `/api/blogs?author=dan` | Filter by author |
-| GET | `/api/blogs?sortBy=likes&order=asc` | Sort results |
-| GET | `/api/blogs?page=1&limit=10` | Paginate results |
-| GET | `/api/blogs/:id` | Get single blog |
-| POST | `/api/blogs` | Create new blog |
-| PUT | `/api/blogs/:id` | Update blog |
-| PATCH | `/api/blogs/:id/like` | Increment likes by 1 |
-| DELETE | `/api/blogs/:id` | Delete blog |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/login` | — | Login, returns JWT token |
+| GET | `/api/blogs` | — | Get all blogs (supports `?search=`, `?sortBy=`, `?page=`, `?limit=`) |
+| GET | `/api/blogs/:id` | — | Get single blog |
+| POST | `/api/blogs` | ✅ Bearer token | Create new blog |
+| PUT | `/api/blogs/:id` | ✅ Owner only | Update blog |
+| PATCH | `/api/blogs/:id/like` | — | Increment likes |
+| DELETE | `/api/blogs/:id` | ✅ Owner only | Delete blog |
+| GET | `/api/users` | — | Get all users |
+| POST | `/api/users` | — | Create new user |
 
-### Users
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/users` | Get all users (with their blogs) |
-| GET | `/api/users/:id` | Get single user |
-| POST | `/api/users` | Create new user |
-| DELETE | `/api/users/:id` | Delete user |
+## Getting Started
 
-## Environment Variables
+### 1. Backend
+```bash
+# في root directory
+cp .env.example .env       # أو عدّل .env مباشرة
+# حط الـ MONGODB_URI وSECRET في .env
 
+npm install
+npm run dev                # runs on http://localhost:3003
+```
+
+### 2. Frontend
+```bash
+cd frontend
+npm install
+npm run dev                # runs on http://localhost:5173
+```
+
+الـ Vite proxy بيوجّه أي request لـ `/api` تلقائياً إلى `http://localhost:3003`.
+
+## Backend .env
 ```env
 NODE_ENV=development
 PORT=3003
 MONGODB_URI=mongodb+srv://<user>:<password>@cluster0.mongodb.net/bloglist
-```
-
-## Getting Started
-
-```bash
-npm install
-npm run dev
-```
-
-## Frontend (Tailwind CSS)
-
-Frontend app now lives inside `frontend/` as a separate React + Vite project using Tailwind CSS.
-
-```bash
-cd frontend
-npm install
-cp .env.example .env
-npm run dev
+SECRET=your_jwt_secret_here
 ```

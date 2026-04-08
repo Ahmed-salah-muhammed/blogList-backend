@@ -1,14 +1,15 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import User from "../models/users.js";
-import { createHttpError } from "../utils/httpError.js";
 
 export const login = async (req, res, next) => {
   try {
     const { username, password } = req.body;
 
     if (!username || !password) {
-      throw createHttpError(400, "username and password are required");
+      return res
+        .status(400)
+        .json({ error: "username and password are required" });
     }
 
     const user = await User.findOne({ username });
@@ -16,7 +17,7 @@ export const login = async (req, res, next) => {
       user === null ? false : await bcrypt.compare(password, user.passwordHash);
 
     if (!user || !passwordCorrect) {
-      throw createHttpError(401, "invalid username or password");
+      return res.status(401).json({ error: "invalid username or password" });
     }
 
     const tokenPayload = {

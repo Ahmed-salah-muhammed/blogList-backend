@@ -24,7 +24,7 @@ export const getUser = async (req, res, next) => {
     });
 
     if (!user) {
-      throw createHttpError(404, "user not found");
+      return res.status(404).json({ error: "user not found" });
     }
 
     res.json(user);
@@ -38,20 +38,26 @@ export const createUser = async (req, res, next) => {
     const { username, name, password } = req.body;
 
     if (!username || !password) {
-      throw createHttpError(400, "username and password are required");
+      return res
+        .status(400)
+        .json({ error: "username and password are required" });
     }
 
     if (username.length < 3) {
-      throw createHttpError(400, "username must be at least 3 characters long");
+      return res
+        .status(400)
+        .json({ error: "username must be at least 3 characters long" });
     }
 
     if (password.length < 3) {
-      throw createHttpError(400, "password must be at least 3 characters long");
+      return res
+        .status(400)
+        .json({ error: "password must be at least 3 characters long" });
     }
 
     const existingUser = await User.findOne({ username });
     if (existingUser) {
-      throw createHttpError(400, "username must be unique");
+      return res.status(400).json({ error: "username must be unique" });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);

@@ -1,12 +1,10 @@
 import Blog from "../models/blog.js";
 import User from "../models/users.js";
-import { buildQueryOptions, buildPaginationMeta } from "../utils/queryHelper.js";
+import {
+  buildQueryOptions,
+  buildPaginationMeta,
+} from "../utils/queryHelper.js";
 import { createHttpError } from "../utils/httpError.js";
-
-const buildSafeBlogUpdate = (body) => {
-  const { user, _id, id, ...safeBody } = body;
-  return safeBody;
-};
 
 const buildSafeBlogUpdate = (body) => {
   const { user, _id, id, ...safeBody } = body;
@@ -104,20 +102,21 @@ export const updateBlog = async (req, res, next) => {
   }
 };
 
-// 4.18: increment likes by 1
 export const likeBlog = async (req, res, next) => {
   try {
-    const updated = await Blog.findByIdAndUpdate(
-      req.params.id,
-      { $inc: { likes: 1 } },
-      { new: true }
-    ).populate("user", { username: 1, name: 1 });
+    const blog = await Blog.findById(req.params.id);
 
-    if (!updated) {
-      throw createHttpError(404, "blog not found");
+    if (!blog) throw createHttpError(404, "blog not found");
+
+    if (blog.likedBy.includes(req.user._id)) {
+      return res.status(400).json({ error: "already liked" });
     }
 
-    res.json(updated);
+    blog.likes += 1;
+    blog.likedBy.push(req.user._id);
+    await blog.save();
+
+    res.json(blog);
   } catch (err) {
     next(err);
   }

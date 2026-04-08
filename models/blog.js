@@ -5,7 +5,7 @@ const blogSchema = new mongoose.Schema({
     type: String,
     required: [true, "title is required"],
     minlength: [1, "title cannot be empty"],
-    index: true, // 4.20: index for faster title search
+    index: true,
   },
   author: String,
   url: {
@@ -19,6 +19,7 @@ const blogSchema = new mongoose.Schema({
     min: [0, "likes cannot be negative"],
   },
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  likedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 });
 
 blogSchema.set("toJSON", {
