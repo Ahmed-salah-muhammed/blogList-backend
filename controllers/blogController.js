@@ -1,6 +1,12 @@
 import Blog from "../models/blog.js";
 import User from "../models/users.js";
 import { buildQueryOptions, buildPaginationMeta } from "../utils/queryHelper.js";
+import { createHttpError } from "../utils/httpError.js";
+
+const buildSafeBlogUpdate = (body) => {
+  const { user, _id, id, ...safeBody } = body;
+  return safeBody;
+};
 
 const buildSafeBlogUpdate = (body) => {
   const { user, _id, id, ...safeBody } = body;
@@ -37,7 +43,7 @@ export const getBlog = async (req, res, next) => {
     });
 
     if (!blog) {
-      return res.status(404).json({ error: "blog not found" });
+      throw createHttpError(404, "blog not found");
     }
 
     res.json(blog);
@@ -108,7 +114,7 @@ export const likeBlog = async (req, res, next) => {
     ).populate("user", { username: 1, name: 1 });
 
     if (!updated) {
-      return res.status(404).json({ error: "blog not found" });
+      throw createHttpError(404, "blog not found");
     }
 
     res.json(updated);
