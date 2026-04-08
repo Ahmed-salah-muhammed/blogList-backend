@@ -61,3 +61,14 @@ MONGODB_URI=mongodb+srv://<user>:<password>@cluster0.mongodb.net/bloglist
 npm install
 npm run dev
 ```
+
+## Frontend (Tailwind CSS)
+
+Frontend app now lives inside `frontend/` as a separate React + Vite project using Tailwind CSS.
+
+```bash
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
+```

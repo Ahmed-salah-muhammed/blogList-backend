@@ -1,8 +1,12 @@
-import jwt from "jsonwebtoken";
 import Blog from "../models/blog.js";
 import User from "../models/users.js";
 import { buildQueryOptions, buildPaginationMeta } from "../utils/queryHelper.js";
 import { createHttpError } from "../utils/httpError.js";
+
+const buildSafeBlogUpdate = (body) => {
+  const { user, _id, id, ...safeBody } = body;
+  return safeBody;
+};
 
 const buildSafeBlogUpdate = (body) => {
   const { user, _id, id, ...safeBody } = body;
@@ -50,16 +54,7 @@ export const getBlog = async (req, res, next) => {
 
 export const createBlog = async (req, res, next) => {
   try {
-    if (!req.token) {
-      throw createHttpError(401, "token missing");
-    }
-
-    const decodedToken = jwt.verify(req.token, process.env.SECRET);
-    const user = await User.findById(decodedToken.id);
-
-    if (!user) {
-      throw createHttpError(401, "token invalid");
-    }
+    const user = req.user;
 
     const blog = new Blog({
       title: req.body.title,
@@ -82,19 +77,17 @@ export const createBlog = async (req, res, next) => {
 
 export const updateBlog = async (req, res, next) => {
   try {
-    if (!req.token) {
-      throw createHttpError(401, "token missing");
-    }
-
-    const decodedToken = jwt.verify(req.token, process.env.SECRET);
+    const user = req.user;
     const blog = await Blog.findById(req.params.id);
 
     if (!blog) {
-      throw createHttpError(404, "blog not found");
+      return res.status(404).json({ error: "blog not found" });
     }
 
-    if (!blog.user || blog.user.toString() !== decodedToken.id) {
-      throw createHttpError(403, "forbidden: only owner can update blog");
+    if (!blog.user || blog.user.toString() !== user.id) {
+      return res
+        .status(403)
+        .json({ error: "forbidden: only owner can update blog" });
     }
 
     const safeUpdate = buildSafeBlogUpdate(req.body);
@@ -132,23 +125,21 @@ export const likeBlog = async (req, res, next) => {
 
 export const deleteBlog = async (req, res, next) => {
   try {
-    if (!req.token) {
-      throw createHttpError(401, "token missing");
-    }
-
-    const decodedToken = jwt.verify(req.token, process.env.SECRET);
+    const user = req.user;
     const blog = await Blog.findById(req.params.id);
 
     if (!blog) {
-      throw createHttpError(404, "blog not found");
+      return res.status(404).json({ error: "blog not found" });
     }
 
-    if (!blog.user || blog.user.toString() !== decodedToken.id) {
-      throw createHttpError(403, "forbidden: only owner can delete blog");
+    if (!blog.user || blog.user.toString() !== user.id) {
+      return res
+        .status(403)
+        .json({ error: "forbidden: only owner can delete blog" });
     }
 
     await Blog.findByIdAndDelete(req.params.id);
-    await User.findByIdAndUpdate(decodedToken.id, { $pull: { blogs: blog._id } });
+    await User.findByIdAndUpdate(user.id, { $pull: { blogs: blog._id } });
     res.status(204).end();
   } catch (err) {
     next(err);
