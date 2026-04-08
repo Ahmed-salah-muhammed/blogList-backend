@@ -1,13 +1,17 @@
 import bcrypt from "bcrypt";
 import User from "../models/users.js";
 
-export const getAllUsers = async (req, res) => {
-  const users = await User.find({}).populate("blogs", {
-    url: 1,
-    title: 1,
-    author: 1,
-  });
-  res.json(users);
+export const getAllUsers = async (req, res, next) => {
+  try {
+    const users = await User.find({}).populate("blogs", {
+      url: 1,
+      title: 1,
+      author: 1,
+    });
+    res.json(users);
+  } catch (err) {
+    next(err);
+  }
 };
 
 export const getUser = async (req, res, next) => {
